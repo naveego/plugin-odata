@@ -1,0 +1,53 @@
+{
+  "id": "plugin-odata",
+  "displayName": "OData",
+  "description": "Plugin for integrating OData feeds.",
+  "apiVersion": "2",
+  "versionDescription": "Version 1",
+  "version": "1.0.0",
+  "iconFile": "icon.jpg",
+  "executable": "PluginOData",
+  "kind": "publisher",
+  "os": "$GOOS",
+  "arch": "$GOARCH",
+  "canConfigure": true,
+  "canProduceMultipleSchemas": true,
+  "canAcceptQueryBasedSchemas": false,
+  "canUseOAuth": false,
+  "canWrite": false,
+  "configSchema": {
+    "ui": {
+      "ui:order": [
+        "BaseUrl",
+        "Username",
+        "Password"
+      ],
+      "Password": {
+        "ui:widget": "password"
+      }
+    },
+    "schema": {
+      "type": "object",
+      "properties": {
+        "BaseUrl" : {
+          "type": "string",
+          "title": "Base Url",
+          "description": "Base url of the OData feed."
+        },
+        "Username" : {
+          "type": "string",
+          "title": "Username",
+          "description": "Username to connect to the OData feed."
+        },
+        "Password" : {
+          "type": "string",
+          "title": "Password",
+          "description": "Password to connect to the OData feed."
+        }
+      },
+      "required": [
+        "BaseUrl"
+      ]
+    }
+  }
+}
