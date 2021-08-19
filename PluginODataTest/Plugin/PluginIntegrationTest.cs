@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Grpc.Core;
 using Naveego.Sdk.Plugins;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using PluginOData.API.Read;
 using PluginOData.API.Utility;
 using PluginOData.DataContracts;
@@ -17,66 +18,62 @@ namespace PluginODataTest.Plugin
 {
     public class PluginIntegrationTest
     {
-        private Settings GetSettings(bool oAuth = false)
+        private Settings GetSettings(string version)
         {
-            return oAuth
-                ? new Settings
-                {
-                }
-                : new Settings
-                {
-                    ApiKey = "", // add to test
-                };
+            switch (version)
+            {
+                case "v2":
+                    return new Settings
+                    {
+                        BaseUrl = "https://services.odata.org/V2/(S(bqq51ysnpwueubdyxcgzejug))/OData/OData.svc/",
+                        Username = "",
+                        Password = ""
+                    };
+                case "v3":
+                    return new Settings
+                    {
+                        BaseUrl = "https://services.odata.org/V3/OData/OData.svc/",
+                        Username = "",
+                        Password = ""
+                    };
+                case "v4":
+                    return new Settings
+                    {
+                        BaseUrl = "https://services.odata.org/TripPinRESTierService/(S(n0fvveapkn2vkipakdonvfys))/",
+                        Username = "",
+                        Password = ""
+                    };
+                default:
+                    return new Settings
+                    {
+                        BaseUrl = "",
+                        Username = "",
+                        Password = ""
+                    };
+            }
         }
 
-        private ConnectRequest GetConnectSettings(bool oAuth = false)
+        private ConnectRequest GetConnectSettings(string version = "v3")
         {
-            var settings = GetSettings(oAuth);
-                
-            var oAuthConfig = oAuth
-                ? new OAuthConfiguration
-                {
-                    ClientId = "", // add to test
-                    ClientSecret = "", // add to test
-                }
-                : new OAuthConfiguration
-                {
-                };
-            
-            var oAuthState = oAuth
-                ? new OAuthState
-                {
-                    RefreshToken = "", // add to test
-                    Config = JsonConvert.SerializeObject(new OAuthConfig
-                    {
-                        RedirectUri = "" // add to test
-                    })
-                }
-                : new OAuthState();
-            
+            var settings = GetSettings(version);
+
             return new ConnectRequest
             {
                 SettingsJson = JsonConvert.SerializeObject(settings),
-                OauthConfiguration = oAuthConfig,
-                OauthStateJson = JsonConvert.SerializeObject(oAuthState)
+                OauthConfiguration = null,
+                OauthStateJson = ""
             };
         }
-
-        private Schema GetTestSchema(string endpointId = null, string id = "test", string name = "test")
+        
+        private Schema GetTestSchema(string id = "test", string name = "test")
         {
-            Endpoint endpoint = endpointId == null
-                ? EndpointHelper.GetEndpointForId("AllContacts")
-                : EndpointHelper.GetEndpointForId(endpointId);
-
-
             return new Schema
             {
                 Id = id,
                 Name = name,
-                PublisherMetaJson = JsonConvert.SerializeObject(endpoint),
             };
         }
-
+        
         [Fact]
         public async Task ConnectSessionTest()
         {
@@ -146,9 +143,9 @@ namespace PluginODataTest.Plugin
             await channel.ShutdownAsync();
             await server.ShutdownAsync();
         }
-        
+
         [Fact]
-        public async Task ConnectOAuthTest()
+        public async Task DiscoverSchemasAllV2Test()
         {
             // setup
             Server server = new Server
@@ -163,39 +160,7 @@ namespace PluginODataTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var request = GetConnectSettings(true);
-
-            // act
-            var response = client.Connect(request);
-
-            // assert
-            Assert.IsType<ConnectResponse>(response);
-            Assert.Equal("", response.SettingsError);
-            Assert.Equal("", response.ConnectionError);
-            Assert.Equal("", response.OauthError);
-
-            // cleanup
-            await channel.ShutdownAsync();
-            await server.ShutdownAsync();
-        }
-
-        [Fact]
-        public async Task DiscoverSchemasAllTest()
-        {
-            // setup
-            Server server = new Server
-            {
-                Services = {Publisher.BindService(new PluginOData.Plugin.Plugin())},
-                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
-            };
-            server.Start();
-
-            var port = server.Ports.First().BoundPort;
-
-            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
-            var client = new Publisher.PublisherClient(channel);
-
-            var connectRequest = GetConnectSettings(true);
+            var connectRequest = GetConnectSettings("v2");
 
             var request = new DiscoverSchemasRequest
             {
@@ -209,45 +174,32 @@ namespace PluginODataTest.Plugin
 
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
-            Assert.Equal(8, response.Schemas.Count);
-            //
-            // var schema = response.Schemas[0];
-            // Assert.Equal($"cclf1", schema.Id);
-            // Assert.Equal("cclf1", schema.Name);
-            // Assert.Equal($"", schema.Query);
-            // Assert.Equal(10, schema.Sample.Count);
-            // Assert.Equal(17, schema.Properties.Count);
-            //
-            // var property = schema.Properties[0];
-            // Assert.Equal("field1", property.Id);
-            // Assert.Equal("field1", property.Name);
-            // Assert.Equal("", property.Description);
-            // Assert.Equal(PropertyType.String, property.Type);
-            // Assert.False(property.IsKey);
-            // Assert.True(property.IsNullable);
-            //
-            // var schema2 = response.Schemas[1];
-            // Assert.Equal($"Custom Name", schema2.Id);
-            // Assert.Equal("Custom Name", schema2.Name);
-            // Assert.Equal($"", schema2.Query);
-            // Assert.Equal(10, schema2.Sample.Count);
-            // Assert.Equal(17, schema2.Properties.Count);
-            //
-            // var property2 = schema2.Properties[0];
-            // Assert.Equal("field1", property2.Id);
-            // Assert.Equal("field1", property2.Name);
-            // Assert.Equal("", property2.Description);
-            // Assert.Equal(PropertyType.String, property2.Type);
-            // Assert.False(property2.IsKey);
-            // Assert.True(property2.IsNullable);
+            Assert.Equal(3, response.Schemas.Count);
+            
+            var schema = response.Schemas[0];
+            Assert.Equal($"Product", schema.Id);
+            Assert.Equal("Product", schema.Name);
+            Assert.Equal("", schema.Description);
+            Assert.Equal($"", schema.Query);
+            Assert.Equal(9, schema.Count.Value);
+            Assert.Equal(9, schema.Sample.Count);
+            Assert.Equal(9, schema.Properties.Count);
+            
+            var property = schema.Properties[0];
+            Assert.Equal("ID", property.Id);
+            Assert.Equal("ID", property.Name);
+            Assert.Equal("", property.Description);
+            Assert.Equal(PropertyType.Integer, property.Type);
+            Assert.True(property.IsKey);
+            Assert.False(property.IsNullable);
 
             // cleanup
             await channel.ShutdownAsync();
             await server.ShutdownAsync();
         }
-
+        
         [Fact]
-        public async Task DiscoverSchemasRefreshTest()
+        public async Task DiscoverSchemasAllV3Test()
         {
             // setup
             Server server = new Server
@@ -262,7 +214,115 @@ namespace PluginODataTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var connectRequest = GetConnectSettings();
+            var connectRequest = GetConnectSettings("v3");
+
+            var request = new DiscoverSchemasRequest
+            {
+                Mode = DiscoverSchemasRequest.Types.Mode.All,
+                SampleSize = 10
+            };
+
+            // act
+            client.Connect(connectRequest);
+            var response = client.DiscoverSchemas(request);
+
+            // assert
+            Assert.IsType<DiscoverSchemasResponse>(response);
+            Assert.Equal(7, response.Schemas.Count);
+            
+            var schema = response.Schemas[0];
+            Assert.Equal($"Product", schema.Id);
+            Assert.Equal("Product", schema.Name);
+            Assert.Equal("", schema.Description);
+            Assert.Equal($"", schema.Query);
+            Assert.Equal(11, schema.Count.Value);
+            Assert.Equal(10, schema.Sample.Count);
+            Assert.Equal(10, schema.Properties.Count);
+            
+            var property = schema.Properties[0];
+            Assert.Equal("ID", property.Id);
+            Assert.Equal("ID", property.Name);
+            Assert.Equal("", property.Description);
+            Assert.Equal(PropertyType.Integer, property.Type);
+            Assert.True(property.IsKey);
+            Assert.False(property.IsNullable);
+
+            // cleanup
+            await channel.ShutdownAsync();
+            await server.ShutdownAsync();
+        }
+        
+        [Fact]
+        public async Task DiscoverSchemasAllV4Test()
+        {
+            // setup
+            Server server = new Server
+            {
+                Services = {Publisher.BindService(new PluginOData.Plugin.Plugin())},
+                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
+            };
+            server.Start();
+
+            var port = server.Ports.First().BoundPort;
+
+            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
+            var client = new Publisher.PublisherClient(channel);
+
+            var connectRequest = GetConnectSettings("v4");
+
+            var request = new DiscoverSchemasRequest
+            {
+                Mode = DiscoverSchemasRequest.Types.Mode.All,
+                SampleSize = 10
+            };
+
+            // act
+            client.Connect(connectRequest);
+            var response = client.DiscoverSchemas(request);
+
+            // assert
+            Assert.IsType<DiscoverSchemasResponse>(response);
+            Assert.Equal(3, response.Schemas.Count);
+            
+            var schema = response.Schemas[0];
+            Assert.Equal($"Person", schema.Id);
+            Assert.Equal("Person", schema.Name);
+            Assert.Equal("", schema.Description);
+            Assert.Equal($"", schema.Query);
+            Assert.Equal(20, schema.Count.Value);
+            Assert.Equal(10, schema.Sample.Count);
+            Assert.Equal(14, schema.Properties.Count);
+            
+            var property = schema.Properties[0];
+            Assert.Equal("UserName", property.Id);
+            Assert.Equal("UserName", property.Name);
+            Assert.Equal("", property.Description);
+            Assert.Equal(PropertyType.String, property.Type);
+            Assert.True(property.IsKey);
+            Assert.False(property.IsNullable);
+
+            // cleanup
+            await channel.ShutdownAsync();
+            await server.ShutdownAsync();
+        }
+        
+        [Fact]
+        public async Task DiscoverSchemasRefreshV2Test()
+        {
+            // setup
+            Server server = new Server
+            {
+                Services = {Publisher.BindService(new PluginOData.Plugin.Plugin())},
+                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
+            };
+            server.Start();
+
+            var port = server.Ports.First().BoundPort;
+
+            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
+            var client = new Publisher.PublisherClient(channel);
+
+            var connectRequest = GetConnectSettings("v2");
 
             var request = new DiscoverSchemasRequest
             {
@@ -270,7 +330,7 @@ namespace PluginODataTest.Plugin
                 SampleSize = 10,
                 ToRefresh =
                 {
-                    GetTestSchema("ActiveSubscribers")
+                    GetTestSchema("Product")
                 }
             };
 
@@ -280,30 +340,32 @@ namespace PluginODataTest.Plugin
 
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
-            // Assert.Equal(1, response.Schemas.Count);
-            //
-            // var schema = response.Schemas[0];
-            // Assert.Equal("test", schema.Id);
-            // Assert.Equal("test", schema.Name);
-            // Assert.Equal("", schema.Query);
-            // Assert.Equal(10, schema.Sample.Count);
-            // Assert.Equal(17, schema.Properties.Count);
-            //
-            // var property = schema.Properties[0];
-            // Assert.Equal("field1", property.Id);
-            // Assert.Equal("field1", property.Name);
-            // Assert.Equal("", property.Description);
-            // Assert.Equal(PropertyType.String, property.Type);
-            // Assert.False(property.IsKey);
-            // Assert.True(property.IsNullable);
+            Assert.Single(response.Schemas);
+            
+            var schema = response.Schemas[0];
+            Assert.Equal($"Product", schema.Id);
+            Assert.Equal("Product", schema.Name);
+            Assert.Equal("", schema.Description);
+            Assert.Equal($"", schema.Query);
+            Assert.Equal(9, schema.Count.Value);
+            Assert.Equal(9, schema.Sample.Count);
+            Assert.Equal(9, schema.Properties.Count);
+            
+            var property = schema.Properties[0];
+            Assert.Equal("ID", property.Id);
+            Assert.Equal("ID", property.Name);
+            Assert.Equal("", property.Description);
+            Assert.Equal(PropertyType.Integer, property.Type);
+            Assert.True(property.IsKey);
+            Assert.False(property.IsNullable);
 
             // cleanup
             await channel.ShutdownAsync();
             await server.ShutdownAsync();
         }
-
+        
         [Fact]
-        public async Task ReadStreamTest()
+        public async Task DiscoverSchemasRefreshV3Test()
         {
             // setup
             Server server = new Server
@@ -318,14 +380,132 @@ namespace PluginODataTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema();
+            var connectRequest = GetConnectSettings("v3");
 
-            var connectRequest = GetConnectSettings();
+            var request = new DiscoverSchemasRequest
+            {
+                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
+                SampleSize = 10,
+                ToRefresh =
+                {
+                    GetTestSchema("Product")
+                }
+            };
+
+            // act
+            client.Connect(connectRequest);
+            var response = client.DiscoverSchemas(request);
+
+            // assert
+            Assert.IsType<DiscoverSchemasResponse>(response);
+            Assert.Single(response.Schemas);
+            
+            var schema = response.Schemas[0];
+            Assert.Equal($"Product", schema.Id);
+            Assert.Equal("Product", schema.Name);
+            Assert.Equal("", schema.Description);
+            Assert.Equal($"", schema.Query);
+            Assert.Equal(11, schema.Count.Value);
+            Assert.Equal(10, schema.Sample.Count);
+            Assert.Equal(10, schema.Properties.Count);
+            
+            var property = schema.Properties[0];
+            Assert.Equal("ID", property.Id);
+            Assert.Equal("ID", property.Name);
+            Assert.Equal("", property.Description);
+            Assert.Equal(PropertyType.Integer, property.Type);
+            Assert.True(property.IsKey);
+            Assert.False(property.IsNullable);
+
+            // cleanup
+            await channel.ShutdownAsync();
+            await server.ShutdownAsync();
+        }
+        
+        [Fact]
+        public async Task DiscoverSchemasRefreshV4Test()
+        {
+            // setup
+            Server server = new Server
+            {
+                Services = {Publisher.BindService(new PluginOData.Plugin.Plugin())},
+                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
+            };
+            server.Start();
+
+            var port = server.Ports.First().BoundPort;
+
+            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
+            var client = new Publisher.PublisherClient(channel);
+
+            var connectRequest = GetConnectSettings("v4");
+
+            var request = new DiscoverSchemasRequest
+            {
+                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
+                SampleSize = 10,
+                ToRefresh =
+                {
+                    GetTestSchema("Person")
+                }
+            };
+
+            // act
+            client.Connect(connectRequest);
+            var response = client.DiscoverSchemas(request);
+
+            // assert
+            Assert.IsType<DiscoverSchemasResponse>(response);
+            Assert.Single(response.Schemas);
+            
+            var schema = response.Schemas[0];
+            Assert.Equal($"Person", schema.Id);
+            Assert.Equal("Person", schema.Name);
+            Assert.Equal("", schema.Description);
+            Assert.Equal($"", schema.Query);
+            Assert.Equal(20, schema.Count.Value);
+            Assert.Equal(10, schema.Sample.Count);
+            Assert.Equal(14, schema.Properties.Count);
+            
+            var property = schema.Properties[0];
+            Assert.Equal("UserName", property.Id);
+            Assert.Equal("UserName", property.Name);
+            Assert.Equal("", property.Description);
+            Assert.Equal(PropertyType.String, property.Type);
+            Assert.True(property.IsKey);
+            Assert.False(property.IsNullable);
+
+            // cleanup
+            await channel.ShutdownAsync();
+            await server.ShutdownAsync();
+        }
+
+        [Fact]
+        public async Task ReadStreamV2Test()
+        {
+            // setup
+            Server server = new Server
+            {
+                Services = {Publisher.BindService(new PluginOData.Plugin.Plugin())},
+                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
+            };
+            server.Start();
+
+            var port = server.Ports.First().BoundPort;
+
+            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
+            var client = new Publisher.PublisherClient(channel);
+
+            var connectRequest = GetConnectSettings("v2");
 
             var schemaRequest = new DiscoverSchemasRequest
             {
                 Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
-                ToRefresh = {schema}
+                SampleSize = 10,
+                ToRefresh =
+                {
+                    GetTestSchema("Product")
+                }
             };
 
             var request = new ReadRequest()
@@ -352,21 +532,21 @@ namespace PluginODataTest.Plugin
             }
 
             // assert
-            Assert.Equal(1002, records.Count);
+            Assert.Equal(9, records.Count);
 
             var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
-            Assert.Equal("Brisbane", record["city"]);
-            Assert.Equal("HubSpot", record["company"]);
-            Assert.Equal("Maria", record["firstname"]);
-            Assert.Equal("", record["work_email"]);
+            Assert.Equal((long)0, record["ID"]);
+            Assert.Equal("Bread", record["Name"]);
+            Assert.Equal(new DateTime(628298208000000000), record["ReleaseDate"]);
+            Assert.Equal("2.5", record["Price"]);
 
             // cleanup
             await channel.ShutdownAsync();
             await server.ShutdownAsync();
         }
-
+        
         [Fact]
-        public async Task ReadStreamSubscriberTest()
+        public async Task ReadStreamV3Test()
         {
             // setup
             Server server = new Server
@@ -381,14 +561,16 @@ namespace PluginODataTest.Plugin
             var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
             var client = new Publisher.PublisherClient(channel);
 
-            var schema = GetTestSchema("ActiveSubscribers");
-
-            var connectRequest = GetConnectSettings();
+            var connectRequest = GetConnectSettings("v3");
 
             var schemaRequest = new DiscoverSchemasRequest
             {
                 Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
-                ToRefresh = {schema}
+                SampleSize = 10,
+                ToRefresh =
+                {
+                    GetTestSchema("Product")
+                }
             };
 
             var request = new ReadRequest()
@@ -415,10 +597,77 @@ namespace PluginODataTest.Plugin
             }
 
             // assert
-            Assert.Equal(2, records.Count);
+            Assert.Equal(11, records.Count);
 
             var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
-            // Assert.Equal("~", record["tilde"]);
+            Assert.Equal((long)0, record["ID"]);
+            Assert.Equal("Bread", record["Name"]);
+            Assert.Equal(new DateTime(628298208000000000), record["ReleaseDate"]);
+            Assert.Equal(2.5, record["Price"]);
+
+            // cleanup
+            await channel.ShutdownAsync();
+            await server.ShutdownAsync();
+        }
+        
+        [Fact]
+        public async Task ReadStreamV4Test()
+        {
+            // setup
+            Server server = new Server
+            {
+                Services = {Publisher.BindService(new PluginOData.Plugin.Plugin())},
+                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
+            };
+            server.Start();
+
+            var port = server.Ports.First().BoundPort;
+
+            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
+            var client = new Publisher.PublisherClient(channel);
+
+            var connectRequest = GetConnectSettings("v4");
+
+            var schemaRequest = new DiscoverSchemasRequest
+            {
+                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
+                SampleSize = 10,
+                ToRefresh =
+                {
+                    GetTestSchema("Person")
+                }
+            };
+
+            var request = new ReadRequest()
+            {
+                DataVersions = new DataVersions
+                {
+                    JobId = "test"
+                },
+                JobId = "test",
+            };
+
+            // act
+            client.Connect(connectRequest);
+            var schemasResponse = client.DiscoverSchemas(schemaRequest);
+            request.Schema = schemasResponse.Schemas[0];
+
+            var response = client.ReadStream(request);
+            var responseStream = response.ResponseStream;
+            var records = new List<Record>();
+
+            while (await responseStream.MoveNext())
+            {
+                records.Add(responseStream.Current);
+            }
+
+            // assert
+            Assert.Equal(20, records.Count);
+
+            var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
+            Assert.Equal("russellwhyte", record["UserName"]);
+            Assert.Equal(null, record["Age"]);
+            Assert.Equal(new JArray(){"Russell@example.com","Russell@contoso.com"}, record["Emails"]);
 
             // cleanup
             await channel.ShutdownAsync();
@@ -443,12 +692,16 @@ namespace PluginODataTest.Plugin
 
             var schema = GetTestSchema();
 
-            var connectRequest = GetConnectSettings();
+            var connectRequest = GetConnectSettings("v4");
 
             var schemaRequest = new DiscoverSchemasRequest
             {
                 Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
-                ToRefresh = {schema}
+                SampleSize = 10,
+                ToRefresh =
+                {
+                    GetTestSchema("Person")
+                }
             };
 
             var request = new ReadRequest()
@@ -476,180 +729,7 @@ namespace PluginODataTest.Plugin
             }
 
             // assert
-            Assert.Equal(1, records.Count);
-
-            // cleanup
-            await channel.ShutdownAsync();
-            await server.ShutdownAsync();
-        }
-
-        [Fact]
-        public async Task ReadStreamRealTimeTest()
-        {
-            // setup
-            Server server = new Server
-            {
-                Services = {Publisher.BindService(new PluginOData.Plugin.Plugin())},
-                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
-            };
-            server.Start();
-
-            var port = server.Ports.First().BoundPort;
-
-            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
-            var client = new Publisher.PublisherClient(channel);
-
-            var schema = GetTestSchema();
-
-            var connectRequest = GetConnectSettings();
-
-            var schemaRequest = new DiscoverSchemasRequest
-            {
-                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
-                ToRefresh = {schema}
-            };
-
-            var request = new ReadRequest()
-            {
-                DataVersions = new DataVersions
-                {
-                    JobId = "test",
-                    JobDataVersion = 1
-                },
-                JobId = "test",
-                RealTimeStateJson = JsonConvert.SerializeObject(new RealTimeState()),
-                RealTimeSettingsJson = JsonConvert.SerializeObject(new RealTimeSettings()),
-            };
-
-            // act
-            var records = new List<Record>();
-            try
-            {
-                client.Connect(connectRequest);
-                var schemasResponse = client.DiscoverSchemas(schemaRequest);
-                request.Schema = schemasResponse.Schemas[0];
-
-                var cancellationToken = new CancellationTokenSource();
-                cancellationToken.CancelAfter(5000);
-                var response = client.ReadStream(request, null, null, cancellationToken.Token);
-                var responseStream = response.ResponseStream;
-
-
-                while (await responseStream.MoveNext())
-                {
-                    records.Add(responseStream.Current);
-                }
-            }
-            catch (Exception e)
-            {
-                Assert.Equal("Status(StatusCode=Cancelled, Detail=\"Cancelled\")", e.Message);
-            }
-
-
-            // assert
-            Assert.Equal(3, records.Count);
-
-            var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
-            // Assert.Equal("~", record["tilde"]);
-
-            // cleanup
-            await channel.ShutdownAsync();
-            await server.ShutdownAsync();
-        }
-
-        [Fact]
-        public async Task WriteTest()
-        {
-            // setup
-            Server server = new Server
-            {
-                Services = {Publisher.BindService(new PluginOData.Plugin.Plugin())},
-                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
-            };
-            server.Start();
-
-            var port = server.Ports.First().BoundPort;
-
-            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
-            var client = new Publisher.PublisherClient(channel);
-
-            var schema = GetTestSchema("UpsertCompanies");
-
-            var connectRequest = GetConnectSettings();
-
-            var schemaRequest = new DiscoverSchemasRequest
-            {
-                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
-                ToRefresh = {schema}
-            };
-
-            var records = new List<Record>()
-            {
-                {
-                    new Record
-                    {
-                        Action = Record.Types.Action.Upsert,
-                        CorrelationId = "test",
-                        RecordId = "record1",
-                        DataJson = "{\"createdate\":\"2021-05-06T16:55:49.689Z\",\"domain\":\"sample.com\",\"hs_lastmodifieddate\":\"2021-05-06T16:56:10.131Z\",\"hs_object_id\":\"6021949042\",\"name\":\"Updated Sample Company\",\"hs_unique_creation_key\":\"6021949042\"}",
-                    }
-                },
-                {
-                    new Record
-                    {
-                        Action = Record.Types.Action.Upsert,
-                        CorrelationId = "test",
-                        RecordId = "record2",
-                        DataJson = "{\"domain\":\"newsample.com\",\"name\":\"New Sample Company\"}",
-                    }
-                }
-            };
-
-            var recordAcks = new List<RecordAck>();
-
-            // act
-            client.Connect(connectRequest);
-
-            var schemasResponse = client.DiscoverSchemas(schemaRequest);
-
-            var prepareWriteRequest = new PrepareWriteRequest()
-            {
-                Schema = schemasResponse.Schemas[0],
-                CommitSlaSeconds = 1000,
-                DataVersions = new DataVersions
-                {
-                    JobId = "jobUnitTest",
-                    ShapeId = "shapeUnitTest",
-                    JobDataVersion = 1,
-                    ShapeDataVersion = 1
-                }
-            };
-            client.PrepareWrite(prepareWriteRequest);
-
-            using (var call = client.WriteStream())
-            {
-                var responseReaderTask = Task.Run(async () =>
-                {
-                    while (await call.ResponseStream.MoveNext())
-                    {
-                        var ack = call.ResponseStream.Current;
-                        recordAcks.Add(ack);
-                    }
-                });
-
-                foreach (Record record in records)
-                {
-                    await call.RequestStream.WriteAsync(record);
-                }
-
-                await call.RequestStream.CompleteAsync();
-                await responseReaderTask;
-            }
-
-            // assert
-            Assert.Equal(2, recordAcks.Count);
-            Assert.Equal("", recordAcks[0].Error);
-            Assert.Equal("test", recordAcks[0].CorrelationId);
+            Assert.Single(records);
 
             // cleanup
             await channel.ShutdownAsync();

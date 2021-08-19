@@ -25,7 +25,17 @@ namespace PluginOData.API.Read
                     {
                         if (record.ContainsKey(property.Id))
                         {
-                            recordMap[property.Id] = record[property.Id];
+                            switch (property.Type)
+                            {
+                                case PropertyType.String:
+                                case PropertyType.Text:
+                                case PropertyType.Decimal:
+                                    recordMap[property.Id] = record[property.Id].ToString();
+                                    break;
+                                default:
+                                    recordMap[property.Id] = record[property.Id];
+                                    break;
+                            }
                         }
                         else
                         {

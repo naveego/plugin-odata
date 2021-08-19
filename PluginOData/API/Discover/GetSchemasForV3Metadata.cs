@@ -44,15 +44,19 @@ namespace PluginOData.API.Discover
                         var properties = new List<Property>();
                         foreach (IEdmProperty property in structuredType.DeclaredProperties)
                         {
+                            var id = property.Name ?? $"UNKNOWN";
+                            var type = property.Type.FullName() ?? "";
+                            var isKey = entityType.DeclaredKey.Contains(property);
+                            
                             properties.Add(new Property
                             {
-                                Id = property.Name,
-                                Name = property.Name,
+                                Id = id,
+                                Name = id,
                                 Description = "",
-                                Type = GetPropertyType(property.Type.FullName()),
-                                TypeAtSource = property.Type.FullName(),
-                                IsKey = entityType.DeclaredKey.Contains(property),
-                                IsNullable = !entityType.DeclaredKey.Contains(property),
+                                Type = GetPropertyType(type),
+                                TypeAtSource = type,
+                                IsKey = isKey,
+                                IsNullable = !isKey,
                                 IsCreateCounter = false,
                                 IsUpdateCounter = false,
                             });

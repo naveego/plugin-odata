@@ -16,14 +16,14 @@ namespace PluginOData.Helper
         {
             if (String.IsNullOrEmpty(BaseUrl))
             {
-                throw new Exception("the BaseUrl property must be set");
+                throw new Exception("The BaseUrl property must be set");
             }
             
             if (!string.IsNullOrWhiteSpace(Username))
             {
                 if (String.IsNullOrEmpty(Password))
                 {
-                    throw new Exception("the Password property must be set");
+                    throw new Exception("The Password property must be set");
                 }
             }
             
@@ -31,7 +31,7 @@ namespace PluginOData.Helper
             {
                 if (String.IsNullOrEmpty(Username))
                 {
-                    throw new Exception("the Username property must be set");
+                    throw new Exception("The Username property must be set");
                 }
             }
         }

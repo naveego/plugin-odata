@@ -38,9 +38,9 @@ namespace PluginOData.API.Discover
             
             if (v4Model != null)
             {
-                var v3Schemas = GetSchemasForV4Metadata(apiClient, v4Model, sampleSize, idFilter);
+                var v4Schemas = GetSchemasForV4Metadata(apiClient, v4Model, sampleSize, idFilter);
 
-                await foreach (var schema in v3Schemas)
+                await foreach (var schema in v4Schemas)
                 {
                     yield return schema;
                 }

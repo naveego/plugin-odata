@@ -1,3 +1,6 @@
+using System;
+using System.ComponentModel.DataAnnotations;
+using Naveego.Sdk.Logging;
 using Naveego.Sdk.Plugins;
 
 namespace PluginOData.API.Discover
@@ -6,45 +9,36 @@ namespace PluginOData.API.Discover
     {
         public static PropertyType GetPropertyType(string dataType)
         {
-            return PropertyType.String;
-            // switch (dataType)
-            // {
-            //     case var t when t.Contains("timestamp"):
-            //         return PropertyType.Datetime;
-            //     case "date":
-            //         return PropertyType.Date;
-            //     case "time":
-            //         return PropertyType.Time;
-            //     case "smallint":
-            //     case "int":
-            //     case "integer":
-            //     case "bigint":
-            //         return PropertyType.Integer;
-            //     case "decimal":
-            //         return PropertyType.Decimal;
-            //     case "real":
-            //     case "float":
-            //     case "double":
-            //         return PropertyType.Float;
-            //     case "boolean":
-            //     case "bit":
-            //         return PropertyType.Bool;
-            //     case "blob":
-            //     case "mediumblob":
-            //     case "longblob":
-            //         return PropertyType.Blob;
-            //     case "char":
-            //     case "character":
-            //     case "varchar":
-            //     case "tinytext":
-            //         return PropertyType.String;
-            //     case "text":
-            //     case "mediumtext":
-            //     case "longtext":
-            //         return PropertyType.Text;
-            //     default:
-            //         return PropertyType.String;
-            // }
+            // return PropertyType.String;
+            try
+            {
+                switch (dataType)
+                {
+                    case "Edm.DateTime":
+                        return PropertyType.Datetime;
+                    case "Edm.Date":
+                        return PropertyType.Date;
+                    case "Edm.Int32":
+                    case "Edm.Int64":
+                        return PropertyType.Integer;
+                    case "Edm.Decimal":
+                        return PropertyType.Decimal;
+                    case "Edm.Float32":
+                    case "Edm.Double":
+                        return PropertyType.Float;
+                    case "Edm.Boolean":
+                        return PropertyType.Bool;
+                    case "Edm.String":
+                        return PropertyType.String;
+                    default:
+                        return PropertyType.Json;
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e, e.Message);
+                throw;
+            }
         }
     }
 }
