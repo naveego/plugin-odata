@@ -18,7 +18,7 @@ namespace PluginODataTest.Plugin
 {
     public class PluginIntegrationTest
     {
-        private Settings GetSettings(string version)
+        private Settings GetSettings(string version, bool authentication)
         {
             switch (version)
             {
@@ -37,12 +37,19 @@ namespace PluginODataTest.Plugin
                         Password = ""
                     };
                 case "v4":
-                    return new Settings
-                    {
-                        BaseUrl = "https://services.odata.org/TripPinRESTierService/(S(n0fvveapkn2vkipakdonvfys))/",
-                        Username = "",
-                        Password = ""
-                    };
+                    return authentication
+                        ? new Settings 
+                        {
+                            BaseUrl = "",  // add to test
+                            Username = "", // add to test
+                            Password = ""  // add to test
+                        }
+                        : new Settings
+                        {
+                            BaseUrl = "https://services.odata.org/TripPinRESTierService/(S(n0fvveapkn2vkipakdonvfys))/",
+                            Username = "",
+                            Password = ""
+                        };
                 default:
                     return new Settings
                     {
@@ -53,9 +60,9 @@ namespace PluginODataTest.Plugin
             }
         }
 
-        private ConnectRequest GetConnectSettings(string version = "v3")
+        private ConnectRequest GetConnectSettings(string version = "v3", bool authentication = false)
         {
-            var settings = GetSettings(version);
+            var settings = GetSettings(version, authentication);
 
             return new ConnectRequest
             {
@@ -64,7 +71,7 @@ namespace PluginODataTest.Plugin
                 OauthStateJson = ""
             };
         }
-        
+
         private Schema GetTestSchema(string id = "test", string name = "test")
         {
             return new Schema
@@ -73,7 +80,7 @@ namespace PluginODataTest.Plugin
                 Name = name,
             };
         }
-        
+
         [Fact]
         public async Task ConnectSessionTest()
         {
@@ -175,7 +182,7 @@ namespace PluginODataTest.Plugin
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
             Assert.Equal(3, response.Schemas.Count);
-            
+
             var schema = response.Schemas[0];
             Assert.Equal($"Product", schema.Id);
             Assert.Equal("Product", schema.Name);
@@ -184,7 +191,7 @@ namespace PluginODataTest.Plugin
             Assert.Equal(9, schema.Count.Value);
             Assert.Equal(9, schema.Sample.Count);
             Assert.Equal(9, schema.Properties.Count);
-            
+
             var property = schema.Properties[0];
             Assert.Equal("ID", property.Id);
             Assert.Equal("ID", property.Name);
@@ -197,7 +204,7 @@ namespace PluginODataTest.Plugin
             await channel.ShutdownAsync();
             await server.ShutdownAsync();
         }
-        
+
         [Fact]
         public async Task DiscoverSchemasAllV3Test()
         {
@@ -229,7 +236,7 @@ namespace PluginODataTest.Plugin
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
             Assert.Equal(7, response.Schemas.Count);
-            
+
             var schema = response.Schemas[0];
             Assert.Equal($"Product", schema.Id);
             Assert.Equal("Product", schema.Name);
@@ -238,7 +245,7 @@ namespace PluginODataTest.Plugin
             Assert.Equal(11, schema.Count.Value);
             Assert.Equal(10, schema.Sample.Count);
             Assert.Equal(10, schema.Properties.Count);
-            
+
             var property = schema.Properties[0];
             Assert.Equal("ID", property.Id);
             Assert.Equal("ID", property.Name);
@@ -251,7 +258,7 @@ namespace PluginODataTest.Plugin
             await channel.ShutdownAsync();
             await server.ShutdownAsync();
         }
-        
+
         [Fact]
         public async Task DiscoverSchemasAllV4Test()
         {
@@ -283,7 +290,7 @@ namespace PluginODataTest.Plugin
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
             Assert.Equal(3, response.Schemas.Count);
-            
+
             var schema = response.Schemas[0];
             Assert.Equal($"Person", schema.Id);
             Assert.Equal("Person", schema.Name);
@@ -292,7 +299,7 @@ namespace PluginODataTest.Plugin
             Assert.Equal(20, schema.Count.Value);
             Assert.Equal(10, schema.Sample.Count);
             Assert.Equal(14, schema.Properties.Count);
-            
+
             var property = schema.Properties[0];
             Assert.Equal("UserName", property.Id);
             Assert.Equal("UserName", property.Name);
@@ -305,7 +312,7 @@ namespace PluginODataTest.Plugin
             await channel.ShutdownAsync();
             await server.ShutdownAsync();
         }
-        
+
         [Fact]
         public async Task DiscoverSchemasRefreshV2Test()
         {
@@ -341,7 +348,7 @@ namespace PluginODataTest.Plugin
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
             Assert.Single(response.Schemas);
-            
+
             var schema = response.Schemas[0];
             Assert.Equal($"Product", schema.Id);
             Assert.Equal("Product", schema.Name);
@@ -350,7 +357,7 @@ namespace PluginODataTest.Plugin
             Assert.Equal(9, schema.Count.Value);
             Assert.Equal(9, schema.Sample.Count);
             Assert.Equal(9, schema.Properties.Count);
-            
+
             var property = schema.Properties[0];
             Assert.Equal("ID", property.Id);
             Assert.Equal("ID", property.Name);
@@ -363,7 +370,7 @@ namespace PluginODataTest.Plugin
             await channel.ShutdownAsync();
             await server.ShutdownAsync();
         }
-        
+
         [Fact]
         public async Task DiscoverSchemasRefreshV3Test()
         {
@@ -399,7 +406,7 @@ namespace PluginODataTest.Plugin
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
             Assert.Single(response.Schemas);
-            
+
             var schema = response.Schemas[0];
             Assert.Equal($"Product", schema.Id);
             Assert.Equal("Product", schema.Name);
@@ -408,7 +415,7 @@ namespace PluginODataTest.Plugin
             Assert.Equal(11, schema.Count.Value);
             Assert.Equal(10, schema.Sample.Count);
             Assert.Equal(10, schema.Properties.Count);
-            
+
             var property = schema.Properties[0];
             Assert.Equal("ID", property.Id);
             Assert.Equal("ID", property.Name);
@@ -421,7 +428,7 @@ namespace PluginODataTest.Plugin
             await channel.ShutdownAsync();
             await server.ShutdownAsync();
         }
-        
+
         [Fact]
         public async Task DiscoverSchemasRefreshV4Test()
         {
@@ -457,7 +464,7 @@ namespace PluginODataTest.Plugin
             // assert
             Assert.IsType<DiscoverSchemasResponse>(response);
             Assert.Single(response.Schemas);
-            
+
             var schema = response.Schemas[0];
             Assert.Equal($"Person", schema.Id);
             Assert.Equal("Person", schema.Name);
@@ -466,7 +473,7 @@ namespace PluginODataTest.Plugin
             Assert.Equal(20, schema.Count.Value);
             Assert.Equal(10, schema.Sample.Count);
             Assert.Equal(14, schema.Properties.Count);
-            
+
             var property = schema.Properties[0];
             Assert.Equal("UserName", property.Id);
             Assert.Equal("UserName", property.Name);
@@ -535,7 +542,7 @@ namespace PluginODataTest.Plugin
             Assert.Equal(9, records.Count);
 
             var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
-            Assert.Equal((long)0, record["ID"]);
+            Assert.Equal((long) 0, record["ID"]);
             Assert.Equal("Bread", record["Name"]);
             Assert.Equal(new DateTime(628298208000000000), record["ReleaseDate"]);
             Assert.Equal("2.5", record["Price"]);
@@ -544,7 +551,7 @@ namespace PluginODataTest.Plugin
             await channel.ShutdownAsync();
             await server.ShutdownAsync();
         }
-        
+
         [Fact]
         public async Task ReadStreamV3Test()
         {
@@ -600,7 +607,7 @@ namespace PluginODataTest.Plugin
             Assert.Equal(11, records.Count);
 
             var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
-            Assert.Equal((long)0, record["ID"]);
+            Assert.Equal((long) 0, record["ID"]);
             Assert.Equal("Bread", record["Name"]);
             Assert.Equal(new DateTime(628298208000000000), record["ReleaseDate"]);
             Assert.Equal(2.5, record["Price"]);
@@ -609,7 +616,7 @@ namespace PluginODataTest.Plugin
             await channel.ShutdownAsync();
             await server.ShutdownAsync();
         }
-        
+
         [Fact]
         public async Task ReadStreamV4Test()
         {
@@ -667,7 +674,70 @@ namespace PluginODataTest.Plugin
             var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
             Assert.Equal("russellwhyte", record["UserName"]);
             Assert.Equal(null, record["Age"]);
-            Assert.Equal(new JArray(){"Russell@example.com","Russell@contoso.com"}, record["Emails"]);
+            Assert.Equal(new JArray() {"Russell@example.com", "Russell@contoso.com"}, record["Emails"]);
+
+            // cleanup
+            await channel.ShutdownAsync();
+            await server.ShutdownAsync();
+        }
+        
+        [Fact]
+        public async Task ReadStreamV4AuthenticationTest()
+        {
+            // setup
+            Server server = new Server
+            {
+                Services = {Publisher.BindService(new PluginOData.Plugin.Plugin())},
+                Ports = {new ServerPort("localhost", 0, ServerCredentials.Insecure)}
+            };
+            server.Start();
+
+            var port = server.Ports.First().BoundPort;
+
+            var channel = new Channel($"localhost:{port}", ChannelCredentials.Insecure);
+            var client = new Publisher.PublisherClient(channel);
+
+            var connectRequest = GetConnectSettings("v4", true);
+
+            var schemaRequest = new DiscoverSchemasRequest
+            {
+                Mode = DiscoverSchemasRequest.Types.Mode.Refresh,
+                SampleSize = 10,
+                ToRefresh =
+                {
+                    GetTestSchema("Object")
+                }
+            };
+
+            var request = new ReadRequest()
+            {
+                DataVersions = new DataVersions
+                {
+                    JobId = "test"
+                },
+                JobId = "test",
+            };
+
+            // act
+            client.Connect(connectRequest);
+            var schemasResponse = client.DiscoverSchemas(schemaRequest);
+            request.Schema = schemasResponse.Schemas[0];
+
+            var response = client.ReadStream(request);
+            var responseStream = response.ResponseStream;
+            var records = new List<Record>();
+
+            while (await responseStream.MoveNext())
+            {
+                records.Add(responseStream.Current);
+            }
+
+            // assert
+            Assert.Equal(8, records.Count);
+
+            var record = JsonConvert.DeserializeObject<Dictionary<string, object>>(records[0].DataJson);
+            Assert.Equal("aries", record["ObjectId"]);
+            Assert.Equal("Aries", record["Name"]);
 
             // cleanup
             await channel.ShutdownAsync();
