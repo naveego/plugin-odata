@@ -32,6 +32,10 @@ namespace PluginOData.API.Read
                                 case PropertyType.Decimal:
                                     recordMap[property.Id] = record[property.Id].ToString();
                                     break;
+                                // temporary work around for matching
+                                case PropertyType.Json:
+                                    recordMap[property.Id] = JsonConvert.SerializeObject(record[property.Id]);
+                                    break;
                                 default:
                                     recordMap[property.Id] = record[property.Id];
                                     break;
