@@ -13,13 +13,14 @@ namespace PluginOData.API.Discover
         public static async IAsyncEnumerable<Schema> GetSchemasForV4Metadata(IApiClient apiClient,
             V4EdmModelBase metadata, int sampleSize = 5, string idFilter = "")
         {
-            foreach (var item in metadata.EntityContainer.Elements.Where(e => e.ContainerElementKind == EdmContainerElementKind.EntitySet))
+            foreach (var item in metadata.EntityContainer.Elements.Where(e =>
+                e.ContainerElementKind == EdmContainerElementKind.EntitySet))
             {
-                var entitySet = (IEdmEntitySet)item;
-                var schemaElement = (IEdmSchemaElement)entitySet.Type.AsElementType();
+                var entitySet = (IEdmEntitySet) item;
+                var schemaElement = (IEdmSchemaElement) entitySet.Type.AsElementType();
                 var structuredType = (IEdmStructuredType) schemaElement;
                 var entityType = (IEdmEntityType) schemaElement;
-                
+
                 // filter to only target schema if filter specified
                 if (!string.IsNullOrWhiteSpace(idFilter))
                 {
@@ -28,11 +29,11 @@ namespace PluginOData.API.Discover
                         continue;
                     }
                 }
-                
+
                 // base schema to be added to
                 var schema = new Schema
                 {
-                    Id = schemaElement.Name,
+                    Id = entitySet.Name,
                     Name = schemaElement.Name,
                     Description = "",
                     DataFlowDirection = Schema.Types.DataFlowDirection.Read
@@ -44,7 +45,7 @@ namespace PluginOData.API.Discover
                     var id = property.Name ?? $"UNKNOWN";
                     var type = property.Type.FullName() ?? "";
                     var isKey = entityType.DeclaredKey.Contains(property);
-                            
+
                     properties.Add(new Property
                     {
                         Id = id,
